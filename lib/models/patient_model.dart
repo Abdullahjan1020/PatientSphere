@@ -1,3 +1,14 @@
+class Appointment {
+  final String doctorName;
+  final String department;
+  final DateTime dateTime;
+
+  Appointment({
+    required this.doctorName,
+    required this.department,
+    required this.dateTime,
+  });
+}
 class Patient {
   final String id;
   final String name;
