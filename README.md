@@ -14,7 +14,7 @@ In today's world, big hospitals are going digital — but the patient is still h
 
 ## 🔄 Integration with Hospitals
 
-Patient Sphere is designed to connect with commercial hospital systems. When a new diagnosis happens or a doctor's visit is completed, the app's data will automatically update — so the patient's profile stays in sync with hospital records, not the other way around.
+Patient Sphere is designed to connect with commercial hospital systems. When a new diagnosis happens, or a doctor's visit is completed, the app's data will automatically update — so the patient's profile stays in sync with hospital records, not the other way around.
 
 ## 🛠️ Tech Stack
 
@@ -32,7 +32,7 @@ Patient Sphere is designed to connect with commercial hospital systems. When a n
 
 ## 👨‍💻 Developed By
 
-[Your Name / GitHub Handle]
+[Abdullah Jan & Nivesh Kumar]
 
 ---
 
