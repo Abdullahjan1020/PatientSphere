@@ -1,0 +1,6 @@
+{
+    "python.defaultInterpreterPath": "C:\\Python311\\python.exe",
+    "python.terminal.activateEnvironment": false,
+    "python.terminal.activateEnvInCurrentTerminal": false,
+    "python-envs.defaultEnvManager": "ms-python.python:system"
+}
