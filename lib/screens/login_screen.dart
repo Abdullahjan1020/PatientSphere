@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http; //
+import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:patientsphere/screens/dashboard_screen.dart';
 import 'package:patientsphere/screens/register_screen.dart';
@@ -12,14 +12,12 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // 1. Controllers to capture input from the UI
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   bool _rememberMe = false;
-  bool _isLoading = false; // To show a loading spinner during the API call
+  bool _isLoading = false;
 
-  // 2. The Login Function: Connects to your Python Flask Backend
   Future<void> _handleLogin() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -44,14 +42,18 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (response.statusCode == 200) {
-        // Success! User found in MongoDB
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        String firstName = responseData['user']['first_name'];
+
         if (!mounted) return;
+
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+          MaterialPageRoute(
+            builder: (context) => DashboardScreen(userName: firstName),
+          ),
         );
       } else {
-        // Invalid credentials or user not found
         final errorData = jsonDecode(response.body);
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -81,10 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const Text("Sign in", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
               const SizedBox(height: 50),
 
-              // Linked with _emailController
               _buildField("Email/Phone number", _emailController),
-
-              // Linked with _passwordController
               _buildField("Password", _passwordController, isPass: true),
 
               Row(
@@ -103,7 +102,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 30),
 
-              // Updated Sign In Button with Loading State
               SizedBox(
                   width: double.infinity,
                   height: 60,
@@ -125,7 +123,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: const Text("Are you new? Register", style: TextStyle(fontWeight: FontWeight.bold))
               ),
               const SizedBox(height: 20),
-              const Text("Sign in", style: TextStyle(color: Colors.grey)),
+              const Text("Sign in with", style: TextStyle(color: Colors.grey)),
               const SizedBox(height: 20),
               _buildSocials(),
             ],
@@ -135,7 +133,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Updated _buildField to accept a controller
   Widget _buildField(String label, TextEditingController controller, {bool isPass = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,6 +148,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 borderRadius: BorderRadius.circular(15),
                 boxShadow: [
                   BoxShadow(
+                    // UPDATED: Used withValues for precision
                       color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4)
@@ -158,7 +156,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ]
             ),
             child: TextFormField(
-                controller: controller, // Essential for capturing text
+                controller: controller,
                 obscureText: isPass,
                 decoration: InputDecoration(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),

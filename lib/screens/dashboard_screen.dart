@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final String userName; // Backend se aane wala name
+
+  const DashboardScreen({super.key, required this.userName});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -22,7 +24,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               const SizedBox(height: 20),
 
-              // 1. Top Bar: Camera, Location, Profile
+              // 1. Top Bar: Camera, Location, Profile Icon (Name Removed)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -34,12 +36,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const Row(
                     children: [
                       Icon(Icons.location_on_outlined, color: Color(0xFF90E094), size: 18),
-                      Text(" New York", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text(" Quetta", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     ],
                   ),
                   const CircleAvatar(
                     radius: 22,
-                    backgroundImage: NetworkImage('https://via.placeholder.com/150'),
+                    backgroundColor: Color(0xFF90E094),
+                    child: Icon(Icons.person, color: Colors.white),
                   ),
                 ],
               ),
@@ -67,14 +70,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               const SizedBox(height: 30),
 
-              // 3. My Appointments
+              // 3. New Profile Card (Name appears here now)
+              _buildProfileCard(),
+
+              const SizedBox(height: 30),
+
+              // 4. My Appointments
               _buildSectionHeader("My Appointments"),
               const SizedBox(height: 15),
               _buildAppointmentCard(),
 
               const SizedBox(height: 30),
 
-              // 4. Trackers
+              // 5. Trackers
               _buildSectionHeader("Trackers"),
               const SizedBox(height: 15),
               SingleChildScrollView(
@@ -91,7 +99,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               const SizedBox(height: 30),
 
-              // 5. Categories
+              // 6. Categories
               _buildSectionHeader("Categories"),
               const SizedBox(height: 15),
               SingleChildScrollView(
@@ -106,16 +114,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 120), // Space for floating bottom nav
+              const SizedBox(height: 120),
             ],
           ),
         ),
       ),
 
-      // 6. Floating Bottom Navigation Bar
+      // 7. Floating Bottom Navigation Bar with SOS
       bottomNavigationBar: Container(
         margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-        height: 70,
+        height: 75,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(35),
@@ -131,7 +139,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           borderRadius: BorderRadius.circular(35),
           child: BottomNavigationBar(
             currentIndex: _selectedIndex,
-            onTap: (index) => setState(() => _selectedIndex = index),
+            onTap: (index) {
+              setState(() => _selectedIndex = index);
+              if (index == 4) {
+                debugPrint("SOS Triggered!");
+              }
+            },
             type: BottomNavigationBarType.fixed,
             backgroundColor: Colors.white,
             selectedItemColor: const Color(0xFF2E4D2F),
@@ -142,13 +155,61 @@ class _DashboardScreenState extends State<DashboardScreen> {
             unselectedFontSize: 10,
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
-              BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: "Message"),
               BottomNavigationBarItem(icon: Icon(Icons.show_chart), label: "Tracker"),
               BottomNavigationBarItem(icon: Icon(Icons.medication_outlined), label: "Medication"),
               BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), label: "Appointment"),
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.sos, color: Colors.red, size: 28),
+                  label: "SOS"
+              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // --- UI Helper Widgets ---
+
+  Widget _buildProfileCard() {
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F5E9).withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          const CircleAvatar(
+            radius: 28,
+            backgroundColor: Colors.white,
+            child: Icon(Icons.person, color: Color(0xFF90E094), size: 30),
+          ),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(widget.userName,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const SizedBox(height: 8),
+                const Row(
+                  children: [
+                    Text("Blood: ", style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+                    Text("N/A", style: TextStyle(fontSize: 11)),
+                    SizedBox(width: 10),
+                    Text("Age: ", style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+                    Text("N/A", style: TextStyle(fontSize: 11)),
+                    SizedBox(width: 10),
+                    Text("Gender: ", style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+                    Text("N/A", style: TextStyle(fontSize: 11)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right, color: Colors.grey),
+        ],
       ),
     );
   }
@@ -174,7 +235,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           const CircleAvatar(
             radius: 28,
-            backgroundImage: NetworkImage('https://via.placeholder.com/150'),
+            backgroundColor: Colors.white,
+            child: Icon(Icons.medical_services_outlined, color: Color(0xFF90E094)),
           ),
           const SizedBox(width: 15),
           const Expanded(
@@ -199,7 +261,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-            child: const Icon(Icons.chat_bubble, color: Color(0xFF90E094), size: 18),
+            child: const Icon(Icons.chat_bubble_outline, color: Color(0xFF90E094), size: 18),
           ),
         ],
       ),
