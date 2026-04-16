@@ -36,21 +36,30 @@ class _LoginScreenState extends State<LoginScreen> {
         url,
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "email": _emailController.text,
+          "email": _emailController.text.trim().toLowerCase(),
           "password": _passwordController.text,
         }),
       );
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
-        String firstName = responseData['user']['first_name'];
+
+        // Extracting required fields from backend response
+        final String firstName = responseData['user']['first_name'];
+        final String email = responseData['user']['email'];
+        final String id = responseData['user']['id']; // Grab the unique ObjectID string
 
         if (!mounted) return;
 
+        // FIXED: Passing all 3 required parameters to Dashboard
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => DashboardScreen(userName: firstName),
+            builder: (context) => DashboardScreen(
+              userName: firstName,
+              userEmail: email,
+              userId: id, // Linking data integrity here
+            ),
           ),
         );
       } else {
@@ -80,7 +89,9 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             children: [
               const SizedBox(height: 80),
-              const Text("Sign in", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+              const Text("Sign in",
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF1F1F1F))
+              ),
               const SizedBox(height: 50),
 
               _buildField("Email/Phone number", _emailController),
@@ -93,6 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Checkbox(
                         value: _rememberMe,
                         activeColor: const Color(0xFF90E094),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                         onChanged: (v) => setState(() => _rememberMe = v!)
                     ),
                     const Text("Remember me", style: TextStyle(fontSize: 12, color: Colors.grey))
@@ -107,9 +119,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   height: 60,
                   child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF90E094),
-                          foregroundColor: const Color(0xFF2E4D2F),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))
+                        backgroundColor: const Color(0xFF90E094),
+                        foregroundColor: const Color(0xFF2E4D2F),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        elevation: 0,
                       ),
                       onPressed: _isLoading ? null : _handleLogin,
                       child: _isLoading
@@ -120,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 40),
               GestureDetector(
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterScreen())),
-                  child: const Text("Are you new? Register", style: TextStyle(fontWeight: FontWeight.bold))
+                  child: const Text("Are you new? Register", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2E4D2F)))
               ),
               const SizedBox(height: 20),
               const Text("Sign in with", style: TextStyle(color: Colors.grey)),
@@ -139,7 +152,7 @@ class _LoginScreenState extends State<LoginScreen> {
       children: [
         Padding(
             padding: const EdgeInsets.only(left: 8, bottom: 8),
-            child: Text(label, style: const TextStyle(fontWeight: FontWeight.w500))
+            child: Text(label, style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.black87))
         ),
         Container(
             margin: const EdgeInsets.only(bottom: 20),
@@ -148,7 +161,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 borderRadius: BorderRadius.circular(15),
                 boxShadow: [
                   BoxShadow(
-                    // UPDATED: Used withValues for precision
                       color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4)
@@ -158,12 +170,21 @@ class _LoginScreenState extends State<LoginScreen> {
             child: TextFormField(
                 controller: controller,
                 obscureText: isPass,
+                style: const TextStyle(fontSize: 14),
                 decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15),
-                        borderSide: BorderSide(color: Colors.grey.shade300)
-                    )
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide(color: Colors.grey.shade300)
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: BorderSide(color: Colors.grey.shade200),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: const BorderSide(color: Color(0xFF90E094), width: 1.5),
+                  ),
                 )
             )
         ),
@@ -177,9 +198,9 @@ class _LoginScreenState extends State<LoginScreen> {
           margin: const EdgeInsets.symmetric(horizontal: 10),
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(color: Colors.grey.shade100),
               borderRadius: BorderRadius.circular(12)
           ),
-          child: Icon(i, size: 28))).toList()
+          child: Icon(i, size: 28, color: Colors.grey))).toList()
   );
 }

@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:patientsphere/screens/profile_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
-  final String userName; // Backend se aane wala name
+  final String userName;
+  final String userEmail;
+  final String userId; // Integrity link: Received from Login
 
-  const DashboardScreen({super.key, required this.userName});
+  const DashboardScreen({
+    super.key,
+    required this.userName,
+    required this.userEmail,
+    required this.userId,
+  });
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -11,6 +19,11 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
+
+  // LOGIC 2: State variables to show real data on the card
+  String displayBlood = "N/A";
+  String displayAge = "N/A";
+  String displayGender = "N/A";
 
   @override
   Widget build(BuildContext context) {
@@ -24,22 +37,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               const SizedBox(height: 20),
 
-              // 1. Top Bar: Camera, Location, Profile Icon (Name Removed)
-              Row(
+              // 1. Top Bar
+              const Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 22,
                     backgroundColor: Color(0xFFF1F8F1),
                     child: Icon(Icons.camera_alt_outlined, color: Color(0xFF90E094), size: 20),
                   ),
-                  const Row(
+                  Row(
                     children: [
                       Icon(Icons.location_on_outlined, color: Color(0xFF90E094), size: 18),
                       Text(" Quetta", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     ],
                   ),
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 22,
                     backgroundColor: Color(0xFF90E094),
                     child: Icon(Icons.person, color: Colors.white),
@@ -57,12 +70,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   borderRadius: BorderRadius.circular(25),
                   border: Border.all(color: Colors.grey.shade200),
                 ),
-                child: TextField(
+                child: const TextField(
                   decoration: InputDecoration(
                     hintText: "Find the doctor",
-                    hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-                    icon: const Icon(Icons.search, color: Colors.grey, size: 20),
-                    suffixIcon: const Icon(Icons.tune, color: Colors.grey, size: 20),
+                    hintStyle: TextStyle(color: Color(0xFFBDBDBD), fontSize: 14),
+                    icon: Icon(Icons.search, color: Colors.grey, size: 20),
+                    suffixIcon: Icon(Icons.tune, color: Colors.grey, size: 20),
                     border: InputBorder.none,
                   ),
                 ),
@@ -70,19 +83,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               const SizedBox(height: 30),
 
-              // 3. New Profile Card (Name appears here now)
+              // 3. Profile Card (Now dynamic)
               _buildProfileCard(),
 
               const SizedBox(height: 30),
 
-              // 4. My Appointments
               _buildSectionHeader("My Appointments"),
               const SizedBox(height: 15),
               _buildAppointmentCard(),
 
               const SizedBox(height: 30),
 
-              // 5. Trackers
               _buildSectionHeader("Trackers"),
               const SizedBox(height: 15),
               SingleChildScrollView(
@@ -99,7 +110,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               const SizedBox(height: 30),
 
-              // 6. Categories
               _buildSectionHeader("Categories"),
               const SizedBox(height: 15),
               SingleChildScrollView(
@@ -120,7 +130,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
 
-      // 7. Floating Bottom Navigation Bar with SOS
       bottomNavigationBar: Container(
         margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         height: 75,
@@ -141,9 +150,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             currentIndex: _selectedIndex,
             onTap: (index) {
               setState(() => _selectedIndex = index);
-              if (index == 4) {
-                debugPrint("SOS Triggered!");
-              }
+              if (index == 4) debugPrint("SOS Triggered!");
             },
             type: BottomNavigationBarType.fixed,
             backgroundColor: Colors.white,
@@ -159,8 +166,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               BottomNavigationBarItem(icon: Icon(Icons.medication_outlined), label: "Medication"),
               BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), label: "Appointment"),
               BottomNavigationBarItem(
-                  icon: Icon(Icons.sos, color: Colors.red, size: 28),
-                  label: "SOS"
+                icon: Icon(Icons.sos, color: Colors.red, size: 28),
+                label: "SOS",
               ),
             ],
           ),
@@ -172,44 +179,68 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // --- UI Helper Widgets ---
 
   Widget _buildProfileCard() {
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE8F5E9).withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: [
-          const CircleAvatar(
-            radius: 28,
-            backgroundColor: Colors.white,
-            child: Icon(Icons.person, color: Color(0xFF90E094), size: 30),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(widget.userName,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                const SizedBox(height: 8),
-                const Row(
-                  children: [
-                    Text("Blood: ", style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
-                    Text("N/A", style: TextStyle(fontSize: 11)),
-                    SizedBox(width: 10),
-                    Text("Age: ", style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
-                    Text("N/A", style: TextStyle(fontSize: 11)),
-                    SizedBox(width: 10),
-                    Text("Gender: ", style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
-                    Text("N/A", style: TextStyle(fontSize: 11)),
-                  ],
-                ),
-              ],
+    return GestureDetector(
+      onTap: () async {
+        // Wait for updated bio-data from ProfileScreen
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProfileScreen(
+              userName: widget.userName,
+              userEmail: widget.userEmail,
+              userId: widget.userId,
             ),
           ),
-          const Icon(Icons.chevron_right, color: Colors.grey),
-        ],
+        );
+
+        // If user saved data, update the UI locally
+        if (result != null && result is Map<String, dynamic>) {
+          setState(() {
+            displayBlood = result['blood'] ?? "N/A";
+            displayAge = result['age'] ?? "N/A";
+            displayGender = result['gender'] ?? "N/A";
+          });
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE8F5E9).withValues(alpha: 0.7),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            const CircleAvatar(
+              radius: 28,
+              backgroundColor: Colors.white,
+              child: Icon(Icons.person, color: Color(0xFF90E094), size: 30),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(widget.userName,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Text("Blood: ", style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+                      Text(displayBlood, style: const TextStyle(fontSize: 11)),
+                      const SizedBox(width: 10),
+                      const Text("Age: ", style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+                      Text(displayAge, style: const TextStyle(fontSize: 11)),
+                      const SizedBox(width: 10),
+                      const Text("Gender: ", style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+                      Text(displayGender, style: const TextStyle(fontSize: 11)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.grey),
+          ],
+        ),
       ),
     );
   }
@@ -305,7 +336,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           borderRadius: BorderRadius.circular(25),
           border: Border.all(color: Colors.grey.shade100),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 5, offset: const Offset(0, 2))
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 5,
+                offset: const Offset(0, 2)
+            )
           ]
       ),
       child: Column(
