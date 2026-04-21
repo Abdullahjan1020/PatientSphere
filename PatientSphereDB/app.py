@@ -1,12 +1,13 @@
 import bcrypt
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
-from bson import ObjectId # Import this to handle MongoDB IDs
+from bson import ObjectId
 from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
 
+# MongoDB Connection
 client = MongoClient("mongodb://localhost:27017/")
 db = client['PatientSphereDB']
 users_collection = db['users']
@@ -19,8 +20,41 @@ def hash_password(password):
 def check_password(password, hashed_password):
     return bcrypt.checkpw(password.encode('utf-8'), hashed_password)
 
-# --- Routes ---
+# --- ROUTES ---
 
+# 1. User Registration
+@app.route('/register', methods=['POST'])
+def register_user():
+    try:
+        data = request.json
+        first_name = data.get('first_name')
+        last_name = data.get('last_name')
+        email = data.get('email', '').lower()
+        password = data.get('password')
+
+        if users_collection.find_one({"email": email}):
+            return jsonify({"error": "User already exists"}), 400
+
+        hashed_pw = hash_password(password)
+
+        user_data = {
+            "first_name": first_name,
+            "last_name": last_name,
+            "email": email,
+            "password": hashed_pw
+        }
+        
+        result = users_collection.insert_one(user_data)
+
+        return jsonify({
+            "message": "User registered successfully",
+            "user_id": str(result.inserted_id)
+        }), 201
+    except Exception as e:
+        print(f"Registration Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# 2. User Login
 @app.route('/login', methods=['POST'])
 def login_user():
     try:
@@ -34,7 +68,7 @@ def login_user():
             return jsonify({
                 "message": "Login successful",
                 "user": {
-                    "id": str(user['_id']), # Return the Unique Object ID as a string
+                    "id": str(user['_id']),
                     "first_name": user.get('first_name'),
                     "email": user.get('email')
                 }
@@ -44,17 +78,40 @@ def login_user():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# 3. Fetch Profile Data (NEW: Fixes the 'Empty Fields' issue)
+@app.route('/get_profile/<user_id>', methods=['GET'])
+def get_profile(user_id):
+    try:
+        profile = user_profiles_collection.find_one({"user_id": ObjectId(user_id)})
+        
+        if profile:
+            return jsonify({
+                "age": profile.get("age", ""),
+                "gender": profile.get("gender", "Male"),
+                "blood_group": profile.get("blood_group", "O+"),
+                "height": profile.get("height", ""),
+                "weight": profile.get("weight", ""),
+                "bmi": profile.get("bmi", "0.0"),
+                "sos_contact": profile.get("sos_contact", "")
+            }), 200
+        else:
+            return jsonify({"message": "No profile found"}), 404
+    except Exception as e:
+        print(f"Fetch Error: {e}")
+        return jsonify({"error": "Invalid User ID format"}), 400
+
+# 4. Update/Create Profile
 @app.route('/update_profile', methods=['POST'])
 def update_profile():
     try:
         data = request.json
-        user_id = data.get('user_id') # We now expect the ObjectID string
+        user_id = data.get('user_id')
 
         if not user_id:
-            return jsonify({"error": "User ID is required for integrity"}), 400
+            return jsonify({"error": "User ID is required"}), 400
 
         profile_data = {
-            "user_id": ObjectId(user_id), # Store as actual ObjectId for fast indexing
+            "user_id": ObjectId(user_id),
             "age": data.get('age'),
             "gender": data.get('gender'),
             "blood_group": data.get('blood_group'),
@@ -64,18 +121,19 @@ def update_profile():
             "sos_contact": data.get('sos_contact')
         }
 
-        # Update by user_id instead of email
+        # upsert=True ensures it creates a new one if it doesn't exist, 
+        # or updates the existing one based on user_id.
         user_profiles_collection.update_one(
             {"user_id": ObjectId(user_id)},
             {"$set": profile_data},
             upsert=True
         )
 
-        return jsonify({"message": "Bio-data linked to ObjectID successfully"}), 200
-
+        return jsonify({"message": "Profile synced successfully"}), 200
     except Exception as e:
-        print(f"Profile Error: {e}")
-        return jsonify({"error": "Data integrity fault"}), 500
+        print(f"Update Error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
+    # Make sure to use the IP address of your machine for mobile testing
     app.run(debug=True, host='0.0.0.0', port=5000)

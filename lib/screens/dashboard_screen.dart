@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:patientsphere/screens/profile_screen.dart';
+import 'package:patientsphere/screens/sos_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final String userName;
   final String userEmail;
-  final String userId; // Integrity link: Received from Login
+  final String userId;
 
   const DashboardScreen({
     super.key,
@@ -20,10 +21,11 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
 
-  // LOGIC 2: State variables to show real data on the card
-  String displayBlood = "N/A";
-  String displayAge = "N/A";
-  String displayGender = "N/A";
+  // Initializing with data from screenshots
+  String displayBlood = "B+";
+  String displayAge = "22";
+  String displayGender = "Male";
+  String currentSosContact = "1122";
 
   @override
   Widget build(BuildContext context) {
@@ -38,21 +40,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 20),
 
               // 1. Top Bar
-              const Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  CircleAvatar(
+                  const CircleAvatar(
                     radius: 22,
                     backgroundColor: Color(0xFFF1F8F1),
                     child: Icon(Icons.camera_alt_outlined, color: Color(0xFF90E094), size: 20),
                   ),
-                  Row(
+                  const Row(
                     children: [
                       Icon(Icons.location_on_outlined, color: Color(0xFF90E094), size: 18),
                       Text(" Quetta", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     ],
                   ),
-                  CircleAvatar(
+                  const CircleAvatar(
                     radius: 22,
                     backgroundColor: Color(0xFF90E094),
                     child: Icon(Icons.person, color: Colors.white),
@@ -68,7 +70,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(25),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: const Color(0xFFEEEEEE)),
                 ),
                 child: const TextField(
                   decoration: InputDecoration(
@@ -83,7 +85,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               const SizedBox(height: 30),
 
-              // 3. Profile Card (Now dynamic)
+              // 3. Profile Card (Screenshot 1 Style)
               _buildProfileCard(),
 
               const SizedBox(height: 30),
@@ -120,7 +122,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _buildCategoryItem("Dental", Icons.health_and_safety_outlined),
                     _buildCategoryItem("Cardiology", Icons.favorite_border),
                     _buildCategoryItem("Dermatology", Icons.face_outlined),
-                    _buildCategoryItem("Ophthalmology", Icons.visibility_outlined),
                   ],
                 ),
               ),
@@ -130,6 +131,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
 
+      // 4. Bottom Navigation (Screenshot 1 Style with SOS circle)
       bottomNavigationBar: Container(
         margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         height: 75,
@@ -149,8 +151,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: BottomNavigationBar(
             currentIndex: _selectedIndex,
             onTap: (index) {
-              setState(() => _selectedIndex = index);
-              if (index == 4) debugPrint("SOS Triggered!");
+              if (index == 4) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SOSTriggerScreen(sosContact: currentSosContact),
+                  ),
+                );
+              } else {
+                setState(() => _selectedIndex = index);
+              }
             },
             type: BottomNavigationBarType.fixed,
             backgroundColor: Colors.white,
@@ -176,12 +186,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // --- UI Helper Widgets ---
-
   Widget _buildProfileCard() {
     return GestureDetector(
       onTap: () async {
-        // Wait for updated bio-data from ProfileScreen
         final result = await Navigator.push(
           context,
           MaterialPageRoute(
@@ -193,12 +200,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         );
 
-        // If user saved data, update the UI locally
         if (result != null && result is Map<String, dynamic>) {
           setState(() {
-            displayBlood = result['blood'] ?? "N/A";
-            displayAge = result['age'] ?? "N/A";
-            displayGender = result['gender'] ?? "N/A";
+            displayBlood = result['blood'] ?? displayBlood;
+            displayAge = result['age'] ?? displayAge;
+            displayGender = result['gender'] ?? displayGender;
+            currentSosContact = result['sos'] ?? currentSosContact;
           });
         }
       },
@@ -328,13 +335,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildCategoryItem(String label, IconData icon) {
     return Container(
-      width: 90,
+      width: 100,
       margin: const EdgeInsets.only(right: 15),
       padding: const EdgeInsets.symmetric(vertical: 18),
       decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(25),
-          border: Border.all(color: Colors.grey.shade100),
+          border: Border.all(color: const Color(0xFFF5F5F5)),
           boxShadow: [
             BoxShadow(
                 color: Colors.black.withValues(alpha: 0.02),

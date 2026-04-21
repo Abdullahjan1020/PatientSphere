@@ -5,14 +5,9 @@ import 'dart:convert';
 class ProfileScreen extends StatefulWidget {
   final String userName;
   final String userEmail;
-  final String userId; // Using the ObjectID for integrity
+  final String userId;
 
-  const ProfileScreen({
-    super.key,
-    required this.userName,
-    required this.userEmail,
-    required this.userId
-  });
+  const ProfileScreen({super.key, required this.userName, required this.userEmail, required this.userId});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -27,18 +22,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _gender = 'Male';
   String _bloodGroup = 'O+';
   double _bmi = 0.0;
+  bool _isLoading = true; // Data load hone tak loading dikhane ke liye
   bool _isSaving = false;
-  bool _isEditing = false; // LOGIC 1: Toggle for editing mode
+  bool _isEditing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfileData(); // Screen khulte hi data fetch karein
+  }
+
+  // NAYA: Database se user ka existing data mangwana
+  Future<void> _fetchProfileData() async {
+    final url = Uri.parse('http://192.168.43.180:5000/get_profile/${widget.userId}');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _ageController.text = data['age'] ?? "";
+          _heightController.text = data['height'] ?? "";
+          _weightController.text = data['weight'] ?? "";
+          _sosController.text = data['sos_contact'] ?? "";
+          _gender = data['gender'] ?? "Male";
+          _bloodGroup = data['blood_group'] ?? "O+";
+          _bmi = double.tryParse(data['bmi'].toString()) ?? 0.0;
+        });
+      }
+    } catch (e) {
+      debugPrint("Fetch Error: $e");
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
   void _calculateBMI() {
     final double height = double.tryParse(_heightController.text) ?? 0;
     final double weight = double.tryParse(_weightController.text) ?? 0;
-
     if (height > 0 && weight > 0) {
       double heightInMeters = height / 100;
-      setState(() {
-        _bmi = weight / (heightInMeters * heightInMeters);
-      });
+      setState(() => _bmi = weight / (heightInMeters * heightInMeters));
     }
   }
 
@@ -64,24 +87,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (response.statusCode == 200) {
         if (!mounted) return;
-
-        // LOGIC 2: Return data to Dashboard to update the card
         Navigator.pop(context, {
           "blood": _bloodGroup,
           "age": _ageController.text,
           "gender": _gender,
         });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Profile Synced and Locked!")),
-        );
       }
     } catch (e) {
       debugPrint("Sync Error: $e");
     } finally {
       setState(() {
         _isSaving = false;
-        _isEditing = false; // Lock fields again after saving
+        _isEditing = false;
       });
     }
   }
@@ -102,12 +119,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           )
         ],
       ),
-      body: SingleChildScrollView(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF90E094)))
+          : SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 25),
         child: Column(
           children: [
             const SizedBox(height: 20),
-            // Profile Header
             CircleAvatar(
               radius: 60,
               backgroundColor: const Color(0xFFE8F5E9),
@@ -154,7 +172,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ]),
 
             const SizedBox(height: 40),
-            if (_isEditing) // Only show save button when in edit mode
+            if (_isEditing)
               SizedBox(
                 width: double.infinity,
                 height: 60,
@@ -178,6 +196,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // --- Reused Helper methods (_buildFieldCard, _buildInput, _buildDropdown) stay the same ---
   Widget _buildFieldCard(String title, List<Widget> children) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -186,11 +205,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 10),
         Container(
           padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.shade100),
-          ),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.shade100)),
           child: Column(children: children),
         ),
       ],
@@ -200,28 +215,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildInput(String label, TextEditingController controller, TextInputType type, {bool enabled = true, Function(String)? onChanged}) {
     return TextField(
       controller: controller,
-      enabled: enabled, // Controlled by _isEditing
+      enabled: enabled,
       keyboardType: type,
       onChanged: onChanged,
       style: TextStyle(color: enabled ? Colors.black : Colors.grey),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-        border: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade100)),
-      ),
+      decoration: InputDecoration(labelText: label, labelStyle: const TextStyle(color: Colors.grey, fontSize: 14), border: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade100))),
     );
   }
 
   Widget _buildDropdown(String label, String currentVal, List<String> items, Function(String?) onChanged, {bool enabled = true}) {
     return DropdownButtonFormField<String>(
+      // 'value' ko 'initialValue' se replace kar diya gaya hai
       initialValue: currentVal,
-      onChanged: enabled ? onChanged : null, // Disable interactions if not editing
+      onChanged: enabled ? onChanged : null,
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Colors.grey, fontSize: 14),
         border: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade100)),
       ),
-      items: items.map((i) => DropdownMenuItem(value: i, child: Text(i))).toList(),
+      items: items.map((i) => DropdownMenuItem(
+        value: i,
+        child: Text(i),
+      )).toList(),
     );
-  }
-}
+  }}
