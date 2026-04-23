@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SOSTriggerScreen extends StatefulWidget {
-  final String sosContact; // Dashboard se aya hua user ka emergency number
+  final String sosContact;
 
   const SOSTriggerScreen({super.key, required this.sosContact});
 
@@ -16,11 +16,85 @@ class _SOSTriggerScreenState extends State<SOSTriggerScreen> {
   int _secondsRemaining = 3;
   Timer? _timer;
   bool _isTriggered = false;
+  bool _sosEnabled = false;
 
   @override
   void initState() {
     super.initState();
-    _startCountdown();
+    _checkSosStatus(); // Check if already enabled forever
+  }
+
+  // Check SharedPreferences to see if user already enabled SOS
+  Future<void> _checkSosStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    bool isAlreadyEnabled = prefs.getBool('sos_permanently_enabled') ?? false;
+
+    if (isAlreadyEnabled) {
+      setState(() => _sosEnabled = true);
+      _startCountdown();
+    } else {
+      // First time user - show disclaimer
+      WidgetsBinding.instance.addPostFrameCallback((_) => _showEmergencyDisclaimer());
+    }
+  }
+
+  // Save the "Enabled" status permanently
+  Future<void> _saveSosStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('sos_permanently_enabled', true);
+  }
+
+  void _showEmergencyDisclaimer() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          crossAxisAlignment: CrossAxisAlignment.start, // Align icon with top of text
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.red),
+            SizedBox(width: 10),
+            // FIX: Using Expanded to prevent the yellow overflow barrier
+            Expanded(
+              child: Text(
+                "Emergency Disclaimer",
+                style: TextStyle(color: Colors.red, fontSize: 18),
+                softWrap: true,
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          "By enabling SOS, the app will automatically dial 1122. This is a one-time activation. Once enabled, clicking SOS will directly start the countdown in the future.",
+          style: TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(context); // Exit screen
+            },
+            child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () async {
+              await _saveSosStatus(); // Save status forever
+              if (mounted) {
+                Navigator.pop(context); // Close dialog
+                setState(() => _sosEnabled = true);
+                _startCountdown();
+              }
+            },
+            child: const Text("ENABLE & PROCEED", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _startCountdown() {
@@ -29,51 +103,20 @@ class _SOSTriggerScreenState extends State<SOSTriggerScreen> {
         setState(() => _secondsRemaining--);
       } else {
         _timer?.cancel();
-        if (!_isTriggered) {
-          _executeEmergencyProtocol();
-        }
+        if (!_isTriggered) _executeEmergencyCall();
       }
     });
   }
 
-  Future<void> _executeEmergencyProtocol() async {
+  Future<void> _executeEmergencyCall() async {
     setState(() => _isTriggered = true);
-
     try {
-      // 1. Get Current Location
-      Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
-
-      String locationMsg =
-          "EMERGENCY! I need help. My location: https://www.google.com/maps/search/?api=1&query=${position.latitude},${position.longitude}";
-
-      // 2. ACTION A: Call 1122 (Rescue Services)
       final Uri callUri = Uri.parse('tel:1122');
       if (await canLaunchUrl(callUri)) {
         await launchUrl(callUri, mode: LaunchMode.externalApplication);
       }
-
-      // Small delay taake dialer load hone ke baad WhatsApp load ho
-      await Future.delayed(const Duration(milliseconds: 1000));
-
-      // 3. ACTION B: WhatsApp message to Bio-data Contact
-      // Number format fix (Pakistan 92)
-      String cleanContact = widget.sosContact.replaceAll(RegExp(r'[^0-9]'), '');
-      if (cleanContact.startsWith('0')) {
-        cleanContact = "92${cleanContact.substring(1)}";
-      }else if (cleanContact.startsWith('3') && cleanContact.length == 10) {
-        cleanContact = "92$cleanContact";
-      }
-
-      final Uri whatsappUri = Uri.parse(
-          "https://wa.me/$cleanContact?text=${Uri.encodeComponent(locationMsg)}");
-
-      if (await canLaunchUrl(whatsappUri)) {
-        await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
-      }
-
     } catch (e) {
-      debugPrint("SOS Error: $e");
+      debugPrint("SOS Call Error: $e");
     }
   }
 
@@ -99,10 +142,12 @@ class _SOSTriggerScreenState extends State<SOSTriggerScreen> {
             ),
             const SizedBox(height: 10),
             Text(
-              _isTriggered ? "Contacting Help..." : "Sending help in:",
+              !_sosEnabled
+                  ? "Waiting for Activation..."
+                  : (_isTriggered ? "Dialing 1122..." : "Countdown Started"),
               style: TextStyle(fontSize: 18, color: Colors.red.shade900),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
 
             Stack(
               alignment: Alignment.center,
@@ -110,7 +155,7 @@ class _SOSTriggerScreenState extends State<SOSTriggerScreen> {
                 SizedBox(
                   height: 150, width: 150,
                   child: CircularProgressIndicator(
-                    value: _secondsRemaining / 3,
+                    value: _sosEnabled ? (_secondsRemaining / 3) : 0,
                     strokeWidth: 10,
                     color: Colors.red,
                     backgroundColor: Colors.red.withValues(alpha: 0.1),
@@ -124,6 +169,7 @@ class _SOSTriggerScreenState extends State<SOSTriggerScreen> {
             ),
 
             const SizedBox(height: 50),
+
             if (!_isTriggered)
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -139,15 +185,6 @@ class _SOSTriggerScreenState extends State<SOSTriggerScreen> {
                 },
                 child: const Text("CANCEL", style: TextStyle(fontWeight: FontWeight.bold)),
               )
-            else
-              const Column(
-                children: [
-                  CircularProgressIndicator(color: Colors.red),
-                  SizedBox(height: 10),
-                  Text("Calling 1122 & Messaging Contact...",
-                      style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                ],
-              ),
           ],
         ),
       ),

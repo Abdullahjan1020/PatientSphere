@@ -145,9 +145,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _buildFieldCard("Physical Stats", [
               Row(
                 children: [
-                  Expanded(child: _buildInput("Height (cm)", _heightController, TextInputType.number, enabled: _isEditing, onChanged: (v) => _calculateBMI())),
+                  Expanded(child: _buildInput("Height (cm)",
+                      _heightController,
+                      TextInputType.number,
+                      enabled: _isEditing,
+                      onChanged: (v) => _calculateBMI())
+                  ),
                   const SizedBox(width: 15),
-                  Expanded(child: _buildInput("Weight (kg)", _weightController, TextInputType.number, enabled: _isEditing, onChanged: (v) => _calculateBMI())),
+                  Expanded(child: _buildInput("Weight (kg)",
+                      _weightController,
+                      TextInputType.number,
+                      enabled: _isEditing,
+                      onChanged: (v) => _calculateBMI())
+                  ),
                 ],
               ),
               const SizedBox(height: 15),
@@ -158,7 +168,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text("Calculated BMI", style: TextStyle(fontWeight: FontWeight.bold)),
-                    Text(_bmi.toStringAsFixed(1), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2E4D2F))),
+                    Text(_bmi.toStringAsFixed(1),
+                        style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2E4D2F)
+                        )
+                    ),
                   ],
                 ),
               ),
@@ -166,9 +182,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             const SizedBox(height: 20),
             _buildFieldCard("Medical Details", [
-              _buildDropdown("Gender", _gender, ['Male', 'Female', 'Other'], (v) => setState(() => _gender = v!), enabled: _isEditing),
+              _buildDropdown("Gender", _gender, ['Male', 'Female', 'Other'],
+                      (v) => setState(() => _gender = v!),
+                  enabled: _isEditing
+              ),
               const SizedBox(height: 15),
-              _buildDropdown("Blood Group", _bloodGroup, ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'], (v) => setState(() => _bloodGroup = v!), enabled: _isEditing),
+              _buildDropdown("Blood Group", _bloodGroup, ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'],
+                      (v) => setState(() => _bloodGroup = v!),
+                  enabled: _isEditing
+              ),
             ]),
 
             const SizedBox(height: 40),
@@ -205,25 +227,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 10),
         Container(
           padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.shade100)),
+          decoration: BoxDecoration(color:
+          Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.grey.shade100)
+          ),
           child: Column(children: children),
         ),
       ],
     );
   }
 
-  Widget _buildInput(String label, TextEditingController controller, TextInputType type, {bool enabled = true, Function(String)? onChanged}) {
+  Widget _buildInput(String label,
+      TextEditingController controller,
+      TextInputType type, {bool enabled = true,
+        Function(String)? onChanged}
+      )
+  {
     return TextField(
       controller: controller,
       enabled: enabled,
       keyboardType: type,
       onChanged: onChanged,
       style: TextStyle(color: enabled ? Colors.black : Colors.grey),
-      decoration: InputDecoration(labelText: label, labelStyle: const TextStyle(color: Colors.grey, fontSize: 14), border: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade100))),
+      decoration: InputDecoration(labelText: label,
+          labelStyle: const TextStyle(
+              color: Colors.grey,
+              fontSize: 14),
+          border: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade100))
+      ),
     );
   }
 
-  Widget _buildDropdown(String label, String currentVal, List<String> items, Function(String?) onChanged, {bool enabled = true}) {
+  Widget _buildDropdown(String label,
+      String currentVal,
+      List<String> items,
+      Function(String?) onChanged,
+      {bool enabled = true})
+  {
     return DropdownButtonFormField<String>(
       // 'value' ko 'initialValue' se replace kar diya gaya hai
       initialValue: currentVal,
