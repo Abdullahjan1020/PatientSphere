@@ -12,6 +12,8 @@ client = MongoClient("mongodb://localhost:27017/")
 db = client['PatientSphereDB']
 users_collection = db['users']
 user_profiles_collection = db['user_profiles']
+doctor_collection = db['doctors']
+appointment_collection = db['appointments']
 
 # --- Security Helper Functions ---
 def hash_password(password):
@@ -133,7 +135,50 @@ def update_profile():
     except Exception as e:
         print(f"Update Error: {e}")
         return jsonify({"error": str(e)}), 500
-
+#5. Get all Doctors
+@app.route('/get_doctors', methods=['GET'])
+def get_doctors():
+    try:
+        doctors = list(doctor_collection.find())
+        for doc in doctors:
+            doc['_id'] = str(doc['_id'])
+        return jsonify(doctors), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+#6. Book Appointment
+@app.route('/book_appointment', methods=['POST'])
+def book_appointment():
+    try:
+        data = request.json
+        appointment_data = {
+            "user_id": ObjectId(data.get('user_id')),
+            "doctors_id": data.get('doctors_id'),
+            "doctor_name": data.get('doctor_name'),
+            "department": data.get('department'),
+            "date": data.get('date'),
+            "time": data.get('time'),
+            "status": "Scheduled"
+        }
+        result = appointment_collection.insert_one(appointment_data)
+        return jsonify({"message": "Appointment booked!", "id": str(result.inserted_id)}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+# Get latetest appointment for Dashboard
+@app.route('/get_latest_appointment/<user_id>', methods=['GET'])
+def get_latest_appointment(user_id):
+    try:
+        appointment = appointment_collection.find_one(
+            {"user_id":ObjectId(user_id), "status": "Scheduled"},
+            sort=[("data", -1)]
+        )
+        if appointment:
+            appointment['_id'] = str(appointment['_id'])
+            appointment['user_id'] = str(appointment['user_id'])
+            return jsonify(appointment), 200
+        else:
+            return jsonify({"messege": "No upcoming appointments"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 if __name__ == '__main__':
     # Make sure to use the IP address of your machine for mobile testing
     app.run(debug=True, host='0.0.0.0', port=5000)
