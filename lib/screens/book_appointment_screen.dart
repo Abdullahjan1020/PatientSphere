@@ -64,7 +64,14 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   Future<void> _confirmBooking() async {
     if (selectedDate == null || selectedTime == null || selectedDoctor == null) return;
 
-    showDialog(context: context, barrierDismissible: false, builder: (context) => const Center(child: CircularProgressIndicator(color: Color(0xFF90E094))));
+    showDialog(context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+            child: CircularProgressIndicator(
+                color: Color(0xFF90E094)
+            )
+        )
+    );
 
     try {
       final response = await http.post(
@@ -110,7 +117,11 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E4D2F), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2E4D2F),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)
+                    )
+                ),
                 onPressed: () {
                   Navigator.pop(context); // Close sheet
                   Navigator.pop(context); // Back to Dashboard
@@ -129,7 +140,13 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     const primaryGreen = Color(0xFF90E094);
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(title: const Text("Book Appointment", style: TextStyle(fontWeight: FontWeight.bold)), backgroundColor: Colors.white, elevation: 0, foregroundColor: Colors.black),
+      appBar: AppBar(title: const Text("Book Appointment",
+          style: TextStyle(
+              fontWeight: FontWeight.bold)
+      ), backgroundColor: Colors.white,
+          elevation: 0,
+          foregroundColor: Colors.black
+      ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator(color: primaryGreen))
           : Padding(
@@ -168,7 +185,12 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
               icon: Icons.calendar_month,
               label: selectedDate == null ? "Select Date" : DateFormat('EEE, MMM d, yyyy').format(selectedDate!),
               onTap: () async {
-                final p = await showDatePicker(context: context, initialDate: DateTime.now(), firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 30)));
+                final p = await showDatePicker(context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime.now().add(const Duration(days: 30)
+                    )
+                );
                 if (p != null) setState(() => selectedDate = p);
               },
             ),
@@ -186,7 +208,11 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E4D2F), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2E4D2F),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)
+                    )
+                ),
                 onPressed: _confirmBooking,
                 child: const Text("CONFIRM APPOINTMENT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               ),

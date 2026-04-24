@@ -133,7 +133,12 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 40),
               GestureDetector(
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterScreen())),
-                  child: const Text("Are you new? Register", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2E4D2F)))
+                  child: const Text("Are you new? Register",
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2E4D2F)
+                      )
+                  )
               ),
               const SizedBox(height: 20),
               const Text("Sign in with", style: TextStyle(color: Colors.grey)),

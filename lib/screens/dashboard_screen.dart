@@ -29,7 +29,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   String displayBlood = "--";
   String displayAge = "--";
-  String displayGender = "Male";
+  String displayGender = "--";
   String currentSosContact = "1122";
 
   Map<String, dynamic>? latestAppointment;
@@ -292,14 +292,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _activeAppt() {
     return Row(
       children: [
-        const CircleAvatar(radius: 28, backgroundColor: Colors.white, child: Icon(Icons.medical_services_outlined, color: Color(0xFF90E094))),
+        const CircleAvatar(radius: 28,
+            backgroundColor: Colors.white,
+            child: Icon(Icons.medical_services_outlined,
+                color: Color(0xFF90E094)
+            )
+        ),
         const SizedBox(width: 15),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(latestAppointment!['doctor_name'] ?? "Doctor", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              Text(latestAppointment!['department'] ?? "Specialist", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+              Text(latestAppointment!['doctor_name'] ?? "Doctor",
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14)
+              ),
+              Text(latestAppointment!['department'] ?? "Specialist",
+                  style: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 12)
+              ),
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -432,7 +445,13 @@ class _CategoryItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 100, margin: const EdgeInsets.only(right: 15), padding: const EdgeInsets.symmetric(vertical: 18),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), border: Border.all(color: const Color(0xFFF5F5F5))),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(25),
+          border: Border.all(
+              color: const Color(0xFFF5F5F5)
+          )
+      ),
       child: Column(children: [
         Icon(icon, color: const Color(0xFF90E094), size: 32),
         const SizedBox(height: 10),

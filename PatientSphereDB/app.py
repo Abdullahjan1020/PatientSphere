@@ -135,6 +135,7 @@ def update_profile():
     except Exception as e:
         print(f"Update Error: {e}")
         return jsonify({"error": str(e)}), 500
+    
 #5. Get all Doctors
 @app.route('/get_doctors', methods=['GET'])
 def get_doctors():
@@ -145,6 +146,7 @@ def get_doctors():
         return jsonify(doctors), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
 #6. Book Appointment
 @app.route('/book_appointment', methods=['POST'])
 def book_appointment():
@@ -163,6 +165,7 @@ def book_appointment():
         return jsonify({"message": "Appointment booked!", "id": str(result.inserted_id)}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
 # Get latetest appointment for Dashboard
 @app.route('/get_latest_appointment/<user_id>', methods=['GET'])
 def get_latest_appointment(user_id):
