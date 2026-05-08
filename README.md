@@ -1,39 +1,41 @@
-# 🩺 Patient Sphere
+# 🩺 PatientSphere
 
-**Your Health. Your Record. Your Control.**
+**Empowering Patients. Decentralizing Health Data.**
 
-In today's world, big hospitals are going digital — but the patient is still handed a plastic card. That card holds an ID, but the actual health data stays locked inside the hospital's system. **Patient Sphere** changes that by making the patient the real owner of their health data.
+PatientSphere ek modern healthcare solution hai jo traditional hospital-centric data ko patient-centric banata hai. Aksar patients ke paas sirf ek ID card hota hai, jabki unka mukammal medical data hospital ke servers mein band rehta hai. PatientSphere ye control patient ko wapis deta hai.
 
-## 🎯 What this app does
+## 🚀 Core Functionalities (V1.0 - Live)
 
-- 📊 **Continuous Health Monitoring** – Track your vitals (BP, heart rate, blood sugar, weight, etc.) over time.
-- 📂 **Complete Medical Profile** – Maintain your own record of diagnoses, doctor's prescriptions, diet plans, and lab reports.
-- 🔔 **Smart Reminders** – Get notified for upcoming appointments, medication timings, and follow-ups.
-- 📅 **Appointment Booking** – Book appointments directly from the app.
-- 🆘 **SOS Feature (Fully Active)** – One-tap emergency alert system. Sends your location and critical health info to pre-saved emergency contacts. Works right now, in the current version.
+- **📋 Dynamic Health Profile**: User ke personal credentials (Blood Group, Age, Gender) ka real-time display jo profile update hone par automatically fetch hota hai.
+- **📅 Active Appointment Tracking**: Direct API integration ke zariye latest appointments ka status, doctor ka naam, aur timing dashboard par nazar aati hai.
+- **🆘 SOS Emergency System**: One-tap emergency alert system jo critical situations mein immediate response ke liye design kiya gaya hai. Isme user-controlled disclaimer aur contact management shamil hai.
+- **🔔 Push Notification System**: System checks aur reminders ke liye custom notification service integrated hai (WhatsApp-style pop-ups).
+- **📊 Vitals Monitoring (Trackers)**: BP, Temperature, aur Pulse rate track karne ke liye dedicated cards jo user ke current health status ka snapshot dete hain.
+- **🔍 Doctor Discovery**: Dedicated search functionality doctors ko find karne aur unke department ke mutabiq appointments book karne ke liye.
 
-## 🔄 Integration with Hospitals
+## 🛠️ Technical Implementation
 
-Patient Sphere is designed to connect with commercial hospital systems. When a new diagnosis happens, or a doctor's visit is completed, the app's data will automatically update — so the patient's profile stays in sync with hospital records, not the other way around.
+- **Frontend Framework**: Flutter (Dart) - Null-safe aur high-performance UI components ke saath.
+- **State Management**: StatefulWidgets aur API callbacks ka istemal karte hue real-time data binding.
+- **Backend Communication**: REST APIs (Python/Flask or Node.js) ke saath integration for fetching profile and appointment data.
+- **Local Services**: Flutter Local Notifications aur Timezone data integration for scheduling.
 
-## 🛠️ Tech Stack
+## ⚙️ App Permissions
 
-- **Frontend**: Flutter (Dart) with Android Studio IDE
-- **Database**: MongoDB (planned)
-- **Backend**: Python Django (planned)
+App ko theek se chalne ke liye niche di gayi permissions zaroori hain:
+- **📍 Location**: SOS feature ke liye taake emergency mein exact location bheji ja sake.
+- **📞 Phone**: Emergency contacts ko direct connect karne ke liye.
+- **🔔 Notifications**: Reminders aur system alerts ke liye.
 
-## 🤖 Upcoming Features
+## 🚧 Roadmap (Future Scope)
 
-- **AI Chatbot** for quick diagnosis of minor issues (cold, fever, headache, etc.) — offering first-level guidance before you decide to visit a doctor.
+- **📁 Medical Vault**: Lab reports aur prescriptions ko digital format mein save karne ka feature.
+- **🥗 Diet & Wellness**: Personalized diet plans jo health history ke mutabiq honge.
+- **🤖 AI Assistance**: Minor health issues ke liye first-level guidance chatbot.
 
-## 🚧 Current Status
+## 👨‍💻 Development Team
 
-> ⚠️ **Work in Progress** – Active development. The SOS feature is fully functional. Other features are being built step by step.
-
-## 👨‍💻 Developed By
-
-[Abdullah Jan & Nivesh Kumar]
+- **Abdullah Jan & Nivesh Kumar**
 
 ---
-
 *Because your health data should belong to you, not just a hospital server.*
