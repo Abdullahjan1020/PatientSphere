@@ -1,21 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest.dart' as tz;
 import 'package:patientsphere/screens/profile_screen.dart';
 import 'package:patientsphere/screens/sos_screen.dart';
 import 'package:patientsphere/screens/book_appointment_screen.dart';
+
+class NotificationService {
+  static final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
+
+  static Future<void> init() async {
+    tz.initializeTimeZones();
+    const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const InitializationSettings settings = InitializationSettings(android: androidSettings);
+    await _notificationsPlugin.initialize(settings);
+
+    await _notificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(const AndroidNotificationChannel(
+      'high_priority_channel',
+      'Urgent Notifications',
+      importance: Importance.max,
+      playSound: true,
+      enableVibration: true,
+    ));
+  }
+
+  static Future<void> showInstantPopUp() async {
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'high_priority_channel',
+      'Urgent Notifications',
+      importance: Importance.max,
+      priority: Priority.high,
+      fullScreenIntent: true,
+    );
+    await _notificationsPlugin.show(0, 'PatientSphere', 'System Working Properly!',
+        const NotificationDetails(android: androidDetails)
+    );
+  }
+}
 
 class DashboardScreen extends StatefulWidget {
   final String userName;
   final String userEmail;
   final String userId;
 
-  const DashboardScreen({
-    super.key,
-    required this.userName,
-    required this.userEmail,
-    required this.userId,
-  });
+  const DashboardScreen({super.key, required this.userName, required this.userEmail, required this.userId});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -23,29 +54,20 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
-
-  // IP Config: Change this to your PC's IP address
   final String baseUrl = "http://192.168.43.180:5000";
-
-  String displayBlood = "--";
-  String displayAge = "--";
-  String displayGender = "--";
-  String currentSosContact = "1122";
-
+  String displayBlood = "--", displayAge = "--", displayGender = "--", currentSosContact = "1122";
   Map<String, dynamic>? latestAppointment;
   bool isApptLoading = true;
 
   @override
   void initState() {
     super.initState();
+    NotificationService.init();
     _loadAllData();
   }
 
   Future<void> _loadAllData() async {
-    await Future.wait([
-      _fetchUserProfile(),
-      _fetchLatestAppointment(),
-    ]);
+    await Future.wait([_fetchUserProfile(), _fetchLatestAppointment()]);
   }
 
   Future<void> _fetchUserProfile() async {
@@ -54,15 +76,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {
-          displayBlood = data['blood_group'] ?? "O+";
-          displayAge = data['age']?.toString() ?? "22";
-          displayGender = data['gender'] ?? "Male";
+          displayBlood = data['blood_group'] ?? "--";
+          displayAge = data['age']?.toString() ?? "--";
+          displayGender = data['gender'] ?? "--";
           currentSosContact = data['sos_contact'] ?? "1122";
         });
       }
-    } catch (e) {
-      debugPrint("Profile Fetch Error: $e");
-    }
+    } catch (e) { debugPrint(e.toString()); }
   }
 
   Future<void> _fetchLatestAppointment() async {
@@ -75,27 +95,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
           isApptLoading = false;
         });
       } else {
-        setState(() {
-          latestAppointment = null;
-          isApptLoading = false;
-        });
+        setState(() { latestAppointment = null; isApptLoading = false; });
       }
-    } catch (e) {
-      debugPrint("Appt Fetch Error: $e");
-      setState(() => isApptLoading = false);
-    }
+    } catch (e) { setState(() => isApptLoading = false); }
+  }
+
+  void _showComingSoonDialog(String featureName) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(children: [
+          const Icon(Icons.info_outline, color: Color(0xFF90E094)),
+          const SizedBox(width: 10),
+          Expanded(child: Text("$featureName Coming Soon")),
+        ]),
+        content: const Text("Thank you for your patience!"),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("OK",
+                  style: TextStyle(color: Color(0xFF2E4D2F))
+              )
+          )
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    const primaryGreen = Color(0xFF90E094);
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _loadAllData,
-          color: primaryGreen,
+          color: const Color(0xFF90E094),
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             physics: const AlwaysScrollableScrollPhysics(),
@@ -112,6 +147,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 _buildSectionHeader("My Appointments"),
                 const SizedBox(height: 15),
                 _buildAppointmentWidget(),
+                const SizedBox(height: 30),
+                _buildSectionHeader("System Check"),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => NotificationService.showInstantPopUp(),
+                    icon: const Icon(Icons.notifications_active, color: Colors.white),
+                    label: const Text("Test Push Notification", style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF90E094),
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 30),
                 _buildSectionHeader("Trackers"),
                 const SizedBox(height: 15),
@@ -130,333 +181,230 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // --- UI Components with Original Theme ---
+
   Widget _buildTopBar() {
-    return const Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        CircleAvatar(
-          radius: 22,
-          backgroundColor: Color(0xFFF1F8F1),
-          child: Icon(Icons.camera_alt_outlined, color: Color(0xFF90E094), size: 20),
-        ),
-        Row(
+    return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const CircleAvatar(
+              radius: 22,
+              backgroundColor: Color(0xFFF1F8F1),
+              child: Icon(
+                  Icons.camera_alt_outlined,
+                  color: Color(0xFF90E094),
+                  size: 20)
+          ),
+      const Row(
           children: [
-            Icon(Icons.location_on_outlined, color: Color(0xFF90E094), size: 18),
-            Text(" Quetta", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          ],
-        ),
-        CircleAvatar(
+            Icon(Icons.location_on_outlined,
+                color: Color(0xFF90E094),
+                size: 18
+            ),
+            Text(" Quetta",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
+            )
+          ]
+      ),
+      CircleAvatar(
           radius: 22,
-          backgroundColor: Color(0xFF90E094),
-          child: Icon(Icons.person, color: Colors.white),
-        ),
-      ],
-    );
+          backgroundColor: const Color(0xFF90E094),
+          child: Text(widget.userName[0].toUpperCase(),
+              style: const TextStyle(color: Colors.white)
+          )
+      )
+    ]);
   }
 
   Widget _buildSearchBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
-      ),
-      child: const TextField(
-        decoration: InputDecoration(
-          hintText: "Find the doctor",
-          hintStyle: TextStyle(color: Color(0xFFBDBDBD), fontSize: 14),
-          icon: Icon(Icons.search, color: Colors.grey, size: 20),
-          suffixIcon: Icon(Icons.tune, color: Colors.grey, size: 20),
-          border: InputBorder.none,
+        padding: const EdgeInsets.symmetric(horizontal: 15),
+        decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(25),
+            border: Border.all(color: const Color(0xFFEEEEEE))
         ),
-      ),
+        child: const TextField(
+            decoration: InputDecoration(
+                hintText: "Find the doctor",
+                icon: Icon(Icons.search, color: Colors.grey),
+                border: InputBorder.none)
+        )
     );
   }
 
   Widget _buildProfileCard() {
     return GestureDetector(
-      onTap: () async {
-        await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ProfileScreen(
-              userName: widget.userName,
-              userEmail: widget.userEmail,
-              userId: widget.userId,
-            ),
-          ),
-        );
-        _loadAllData();
-      },
+      onTap: () => Navigator.push(
+          context, MaterialPageRoute(builder: (context) => ProfileScreen(
+          userName: widget.userName,
+          userEmail: widget.userEmail,
+          userId: widget.userId))
+      ),
       child: Container(
         padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: const Color(0xFFE8F5E9).withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
+        decoration: BoxDecoration(color: const Color(0xFFE8F5E9).withOpacity(0.7), borderRadius: BorderRadius.circular(20)),
+        child: Row(children: [
+          const CircleAvatar(radius: 28, backgroundColor: Colors.white, child: Icon(Icons.person, color: Color(0xFF90E094))),
+          const SizedBox(width: 15),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.userName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Row(
+                        children: [
+                          _profileLabel("Blood: ", displayBlood),
+                          const SizedBox(width: 10),
+                          _profileLabel("Age: ", displayAge),
+                          const SizedBox(width: 10),
+                          _profileLabel("Gender: ", displayGender)
+                        ]
+                    )
+                  ]
+              )
+          ),
+          const Icon(Icons.chevron_right, color: Colors.grey),
+        ]),
+      ),
+    );
+  }
+
+  Widget _profileLabel(String l, String v) => Text("$l$v", style: const TextStyle(fontSize: 11));
+
+  Widget _buildAppointmentWidget() {
+    if (isApptLoading) return const Center(child: CircularProgressIndicator(color: Color(0xFF90E094)));
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(color: const Color(0xFFE8F5E9).withOpacity(0.7), borderRadius: BorderRadius.circular(20)),
+      child: latestAppointment == null
+          ? const Text("No active appointments", style: TextStyle(color: Colors.grey))
+          : Row(
           children: [
             const CircleAvatar(
-              radius: 28,
-              backgroundColor: Colors.white,
-              child: Icon(Icons.person, color: Color(0xFF90E094), size: 30),
+                radius: 28,
+                backgroundColor: Colors.white,
+                child: Icon(Icons.medical_services, color: Color(0xFF90E094)
+                )
             ),
             const SizedBox(width: 15),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(widget.userName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 8),
-                  Row(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _profileLabel("Blood: ", displayBlood),
-                      const SizedBox(width: 10),
-                      _profileLabel("Age: ", displayAge),
-                      const SizedBox(width: 10),
-                      _profileLabel("Gender: ", displayGender),
-                    ],
-                  ),
-                ],
-              ),
+                      Text(
+                          latestAppointment!['doctor_name'],
+                          style: const TextStyle(fontWeight: FontWeight.bold)
+                      ),
+                      Text(
+                          "${latestAppointment!['date']} at ${latestAppointment!['time']}",
+                          style: const TextStyle(fontSize: 12, color: Colors.grey)
+                      )
+                    ]
+                )
             ),
-            const Icon(Icons.chevron_right, color: Colors.grey),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _profileLabel(String label, String value) {
-    return RichText(
-      text: TextSpan(
-        style: const TextStyle(fontSize: 10, color: Colors.black),
-        children: [
-          TextSpan(text: label, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-          TextSpan(text: value),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAppointmentWidget() {
-    if (isApptLoading) {
-      return const Center(child: Padding(
-        padding: EdgeInsets.all(20.0),
-        child: CircularProgressIndicator(color: Color(0xFF90E094)),
-      ));
-    }
-
-    return GestureDetector(
-      onTap: () => _navigateToAppointment(),
-      child: Container(
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: const Color(0xFFE8F5E9).withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: latestAppointment == null ? _emptyAppt() : _activeAppt(),
-      ),
-    );
-  }
-
-  // Common Function for Appointment Navigation
-  Future<void> _navigateToAppointment() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => BookAppointmentScreen(userId: widget.userId)),
-    );
-    _fetchLatestAppointment();
-  }
-
-  Widget _emptyAppt() {
-    return const Row(
-      children: [
-        CircleAvatar(radius: 28, backgroundColor: Colors.white, child: Icon(Icons.add_task, color: Color(0xFF90E094))),
-        SizedBox(width: 15),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("No Appointments", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              Text("Tap to book a new one", style: TextStyle(color: Colors.grey, fontSize: 12)),
-            ],
-          ),
-        ),
-        Icon(Icons.add_circle_outline, color: Color(0xFF90E094)),
-      ],
-    );
-  }
-
-  Widget _activeAppt() {
-    return Row(
-      children: [
-        const CircleAvatar(radius: 28,
-            backgroundColor: Colors.white,
-            child: Icon(Icons.medical_services_outlined,
-                color: Color(0xFF90E094)
-            )
-        ),
-        const SizedBox(width: 15),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(latestAppointment!['doctor_name'] ?? "Doctor",
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14)
-              ),
-              Text(latestAppointment!['department'] ?? "Specialist",
-                  style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 12)
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(Icons.calendar_today, size: 12, color: Colors.black54),
-                  Text(" ${latestAppointment!['date']}", style: const TextStyle(fontSize: 11)),
-                  const SizedBox(width: 12),
-                  const Icon(Icons.access_time, size: 12, color: Colors.black54),
-                  Text(" ${latestAppointment!['time']}", style: const TextStyle(fontSize: 11)),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const Icon(Icons.check_circle, color: Color(0xFF90E094), size: 20),
-      ],
+        const Icon(Icons.check_circle, color: Color(0xFF90E094))
+      ]),
     );
   }
 
   Widget _buildTrackerSection() {
-    return const SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: BouncingScrollPhysics(),
-      child: Row(
-        children: [
-          _TrackerCard(label: "Blood Pressure", value: "120/80", unit: "mmHg"),
-          _TrackerCard(label: "Temperature", value: "34", unit: "°C"),
-          _TrackerCard(label: "Pulse", value: "80", unit: "bpm"),
-        ],
-      ),
-    );
+    return SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
+      _tracker("BP", "120/80", "mmHg"),
+      _tracker("Temp", "34", "°C"),
+      _tracker("Pulse", "80", "bpm"),
+    ]));
   }
 
-  Widget _buildCategorySection() {
-    return const SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: BouncingScrollPhysics(),
-      child: Row(
+  Widget _tracker(String l, String v, String u) => Container(
+    width: 110, margin: const EdgeInsets.only(right: 15), padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(color: const Color(0xFFF1F8F1), borderRadius: BorderRadius.circular(15)),
+    child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _CategoryItem(label: "Dental", icon: Icons.health_and_safety_outlined),
-          _CategoryItem(label: "Cardiology", icon: Icons.favorite_border),
-          _CategoryItem(label: "Dermatology", icon: Icons.face_outlined),
-        ],
-      ),
-    );
+          Text(l, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+          Text(v, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          Text(u, style: const TextStyle(fontSize: 8))
+        ]
+    ),
+  );
+
+  Widget _buildCategorySection() {
+    return SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
+      _cat(Icons.health_and_safety, "Dental"),
+      _cat(Icons.favorite, "Heart"),
+      _cat(Icons.face, "Skin"),
+    ]));
   }
+
+  Widget _cat(IconData i, String l) => Container(
+    width: 90, margin: const EdgeInsets.only(right: 15), padding: const EdgeInsets.symmetric(vertical: 15),
+    decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+            color: const Color(0xFFF5F5F5)
+        )
+    ),
+    child: Column(
+        children: [
+          Icon(i, color: const Color(0xFF90E094), size: 28),
+          Text(l, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)
+          )
+        ]
+    ),
+  );
 
   Widget _buildBottomNav() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-      height: 75,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(35),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 20, offset: const Offset(0, 5))
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(35),
-        child: BottomNavigationBar(
-          currentIndex: _selectedIndex,
-          onTap: (index) {
-            if (index == 4) {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => SOSTriggerScreen(sosContact: currentSosContact)));
-            }
-            // UPDATED: Appointment Icon Navigation (Index 3)
-            else if (index == 3) {
-              _navigateToAppointment();
-            }
-            else {
-              setState(() => _selectedIndex = index);
-            }
-          },
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFF2E4D2F),
-          unselectedItemColor: Colors.grey.shade400,
-          showSelectedLabels: true,
-          showUnselectedLabels: true,
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
-            BottomNavigationBarItem(icon: Icon(Icons.show_chart), label: "Tracker"),
-            BottomNavigationBarItem(icon: Icon(Icons.medication_outlined), label: "Medication"),
-            BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), label: "Appointment"),
-            BottomNavigationBarItem(icon: Icon(Icons.sos, color: Colors.red, size: 28), label: "SOS"),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const Text("See all", style: TextStyle(color: Colors.grey, fontSize: 12, decoration: TextDecoration.underline)),
-      ],
-    );
-  }
-}
-
-class _TrackerCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final String unit;
-  const _TrackerCard({required this.label, required this.value, required this.unit});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 130, margin: const EdgeInsets.only(right: 15), padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFFF1F8F1), borderRadius: BorderRadius.circular(18)),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.black54)),
-        const SizedBox(height: 12),
-        Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          Text(" $unit", style: const TextStyle(fontSize: 10, color: Colors.grey)),
-        ]),
-      ]),
-    );
-  }
-}
-
-class _CategoryItem extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  const _CategoryItem({required this.label, required this.icon});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 100, margin: const EdgeInsets.only(right: 15), padding: const EdgeInsets.symmetric(vertical: 18),
+      margin: const EdgeInsets.all(20), height: 70,
       decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(25),
-          border: Border.all(
-              color: const Color(0xFFF5F5F5)
-          )
+          borderRadius: BorderRadius.circular(35),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.08),
+                blurRadius: 20)
+          ]
       ),
-      child: Column(children: [
-        Icon(icon, color: const Color(0xFF90E094), size: 32),
-        const SizedBox(height: 10),
-        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-      ]),
+      child: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: (i) {
+          if (i == 4)
+            Navigator.push(
+                context, MaterialPageRoute(
+                builder: (c) => SOSTriggerScreen(
+                    sosContact: currentSosContact))
+            );
+          else if (i == 3)
+            Navigator.push(
+                context, MaterialPageRoute(
+                builder: (c) => BookAppointmentScreen(
+                    userId: widget.userId))
+            ).then((_) => _loadAllData());
+          else if (i == 1 || i == 2)
+            _showComingSoonDialog(i == 1 ? "Tracker" : "Meds");
+          else setState(() => _selectedIndex = i);
+        },
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: const Color(0xFF2E4D2F),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Tracker"),
+          BottomNavigationBarItem(icon: Icon(Icons.medication), label: "Medication"),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: "Appointment"),
+          BottomNavigationBarItem(icon: Icon(Icons.sos, color: Colors.red), label: "SOS"),
+        ],
+      ),
     );
   }
+
+  Widget _buildSectionHeader(String t) => Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(t, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const Text("See all", style: TextStyle(color: Colors.grey, fontSize: 12))
+      ]
+  );
 }

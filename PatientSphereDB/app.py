@@ -182,6 +182,7 @@ def get_latest_appointment(user_id):
             return jsonify({"messege": "No upcoming appointments"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     # Make sure to use the IP address of your machine for mobile testing
     app.run(debug=True, host='0.0.0.0', port=5000)
