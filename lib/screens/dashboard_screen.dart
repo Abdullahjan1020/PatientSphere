@@ -82,7 +82,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           currentSosContact = data['sos_contact'] ?? "1122";
         });
       }
-    } catch (e) { debugPrint(e.toString()); }
+    } catch (e) {
+      debugPrint(e.toString());
+    }
   }
 
   Future<void> _fetchLatestAppointment() async {
@@ -95,9 +97,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           isApptLoading = false;
         });
       } else {
-        setState(() { latestAppointment = null; isApptLoading = false; });
+        setState(() {
+          latestAppointment = null;
+          isApptLoading = false;
+        });
       }
-    } catch (e) { setState(() => isApptLoading = false); }
+    } catch (e) {
+      setState(() => isApptLoading = false);
+    }
   }
 
   void _showComingSoonDialog(String featureName) {
@@ -181,8 +188,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // --- UI Components with Original Theme ---
-
   Widget _buildTopBar() {
     return Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -195,25 +200,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   color: Color(0xFF90E094),
                   size: 20)
           ),
-      const Row(
-          children: [
-            Icon(Icons.location_on_outlined,
-                color: Color(0xFF90E094),
-                size: 18
-            ),
-            Text(" Quetta",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
-            )
-          ]
-      ),
-      CircleAvatar(
-          radius: 22,
-          backgroundColor: const Color(0xFF90E094),
-          child: Text(widget.userName[0].toUpperCase(),
-              style: const TextStyle(color: Colors.white)
+          const Row(
+              children: [
+                Icon(Icons.location_on_outlined,
+                    color: Color(0xFF90E094),
+                    size: 18
+                ),
+                Text(" Quetta",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
+                )
+              ]
+          ),
+          CircleAvatar(
+              radius: 22,
+              backgroundColor: const Color(0xFF90E094),
+              child: Text(widget.userName[0].toUpperCase(),
+                  style: const TextStyle(color: Colors.white)
+              )
           )
-      )
-    ]);
+        ]);
   }
 
   Widget _buildSearchBar() {
@@ -243,7 +248,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       child: Container(
         padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(color: const Color(0xFFE8F5E9).withOpacity(0.7), borderRadius: BorderRadius.circular(20)),
+        decoration: BoxDecoration(
+            color: const Color(0xFFE8F5E9).withValues(alpha: 0.7),
+            borderRadius: BorderRadius.circular(20)
+        ),
         child: Row(children: [
           const CircleAvatar(radius: 28, backgroundColor: Colors.white, child: Icon(Icons.person, color: Color(0xFF90E094))),
           const SizedBox(width: 15),
@@ -276,7 +284,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (isApptLoading) return const Center(child: CircularProgressIndicator(color: Color(0xFF90E094)));
     return Container(
       padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(color: const Color(0xFFE8F5E9).withOpacity(0.7), borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(
+          color: const Color(0xFFE8F5E9).withValues(alpha: 0.7),
+          borderRadius: BorderRadius.circular(20)
+      ),
       child: latestAppointment == null
           ? const Text("No active appointments", style: TextStyle(color: Colors.grey))
           : Row(
@@ -303,8 +314,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ]
                 )
             ),
-        const Icon(Icons.check_circle, color: Color(0xFF90E094))
-      ]),
+            const Icon(Icons.check_circle, color: Color(0xFF90E094))
+          ]),
     );
   }
 
@@ -362,28 +373,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(35),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.08),
-                blurRadius: 20)
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 20
+            )
           ]
       ),
       child: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (i) {
-          if (i == 4)
+          if (i == 4) {
             Navigator.push(
                 context, MaterialPageRoute(
                 builder: (c) => SOSTriggerScreen(
                     sosContact: currentSosContact))
             );
-          else if (i == 3)
+          } else if (i == 3) {
             Navigator.push(
                 context, MaterialPageRoute(
                 builder: (c) => BookAppointmentScreen(
                     userId: widget.userId))
             ).then((_) => _loadAllData());
-          else if (i == 1 || i == 2)
+          } else if (i == 1 || i == 2) {
             _showComingSoonDialog(i == 1 ? "Tracker" : "Meds");
-          else setState(() => _selectedIndex = i);
+          } else {
+            setState(() => _selectedIndex = i);
+          }
         },
         type: BottomNavigationBarType.fixed,
         selectedItemColor: const Color(0xFF2E4D2F),
