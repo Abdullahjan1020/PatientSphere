@@ -13,7 +13,7 @@ class BookAppointmentScreen extends StatefulWidget {
 }
 
 class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
-  // IP Address Check: Mobile testing ke liye PC ka IP use karein
+  // IP Address: Mobile testing ke liye PC ka IP use karein
   final String baseUrl = "http://192.168.43.180:5000";
 
   DateTime? selectedDate;
@@ -38,15 +38,17 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       final response = await http.get(Uri.parse("$baseUrl/get_doctors"));
       if (response.statusCode == 200) {
         List<dynamic> data = json.decode(response.body);
-        setState(() {
-          allDoctors = data;
-          departments = data.map((e) => e['dept'].toString()).toSet().toList();
-          if (departments.isNotEmpty) {
-            selectedDepartment = departments[0];
-            _filterDoctors(selectedDepartment!);
-          }
-          isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            allDoctors = data;
+            departments = data.map((e) => e['dept'].toString()).toSet().toList();
+            if (departments.isNotEmpty) {
+              selectedDepartment = departments[0];
+              _filterDoctors(selectedDepartment!);
+            }
+            isLoading = false;
+          });
+        }
       }
     } catch (e) {
       debugPrint("Fetch Error: $e");
@@ -60,20 +62,30 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     });
   }
 
-  // API CALL: Posting Appointment to Python Backend
+  // API CALL: Posting Appointment with Double-Booking Validation
   Future<void> _confirmBooking() async {
-    if (selectedDate == null || selectedTime == null || selectedDoctor == null) return;
+    if (selectedDate == null || selectedTime == null || selectedDoctor == null) {
+      return;
+    }
 
-    showDialog(context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-            child: CircularProgressIndicator(
-                color: Color(0xFF90E094)
-            )
-        )
+    // 1. Capture references BEFORE async gaps to avoid BuildContext warnings
+    final navigator = Navigator.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFF90E094),
+        ),
+      ),
     );
 
     try {
+      final dateStr = DateFormat('yyyy-MM-dd').format(selectedDate!);
+      final timeStr = selectedTime!.format(context);
+
       final response = await http.post(
         Uri.parse("$baseUrl/book_appointment"),
         headers: {"Content-Type": "application/json"},
@@ -82,27 +94,50 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           "doctor_id": selectedDoctor!['_id'],
           "doctor_name": selectedDoctor!['name'],
           "department": selectedDepartment,
-          "date": DateFormat('yyyy-MM-dd').format(selectedDate!),
-          "time": selectedTime!.format(context),
+          "date": dateStr,
+          "time": timeStr,
         }),
       );
 
       if (!mounted) return;
-      Navigator.pop(context); // Close loading
+
+      // 2. Use the captured navigator to close the loading dialog
+      navigator.pop();
 
       if (response.statusCode == 201) {
-        _showSuccessSheet();
+        _showSuccessSheet(navigator);
+      } else if (response.statusCode == 409) {
+        final errorData = json.decode(response.body);
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(errorData['error'] ?? "This slot is already taken."),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      } else {
+        final errorData = json.decode(response.body);
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text("Booking Error: ${errorData['error'] ?? 'Unknown error'}"),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } catch (e) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+      if (!mounted) return;
+      navigator.pop(); // Close loading
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
     }
   }
 
-  void _showSuccessSheet() {
+  void _showSuccessSheet(NavigatorState navigator) {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
       builder: (context) => Container(
         padding: const EdgeInsets.all(30),
         child: Column(
@@ -110,7 +145,10 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
           children: [
             const Icon(Icons.check_circle, color: Color(0xFF90E094), size: 80),
             const SizedBox(height: 20),
-            const Text("Appointment Booked!", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            const Text(
+              "Appointment Booked!",
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 10),
             Text("Your visit to ${selectedDoctor!['name']} is confirmed."),
             const SizedBox(height: 30),
@@ -118,13 +156,14 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E4D2F),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)
-                    )
+                  backgroundColor: const Color(0xFF2E4D2F),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
                 ),
                 onPressed: () {
-                  Navigator.pop(context); // Close sheet
-                  Navigator.pop(context); // Back to Dashboard
+                  navigator.pop(); // Close sheet
+                  navigator.pop(); // Back to Dashboard
                 },
                 child: const Text("BACK TO HOME", style: TextStyle(color: Colors.white)),
               ),
@@ -140,12 +179,11 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     const primaryGreen = Color(0xFF90E094);
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(title: const Text("Book Appointment",
-          style: TextStyle(
-              fontWeight: FontWeight.bold)
-      ), backgroundColor: Colors.white,
-          elevation: 0,
-          foregroundColor: Colors.black
+      appBar: AppBar(
+        title: const Text("Book Appointment", style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        foregroundColor: Colors.black,
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator(color: primaryGreen))
@@ -185,11 +223,11 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
               icon: Icons.calendar_month,
               label: selectedDate == null ? "Select Date" : DateFormat('EEE, MMM d, yyyy').format(selectedDate!),
               onTap: () async {
-                final p = await showDatePicker(context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime.now(),
-                    lastDate: DateTime.now().add(const Duration(days: 30)
-                    )
+                final p = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime.now(),
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime.now().add(const Duration(days: 30)),
                 );
                 if (p != null) setState(() => selectedDate = p);
               },
@@ -209,9 +247,8 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
               height: 55,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E4D2F),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)
-                    )
+                  backgroundColor: const Color(0xFF2E4D2F),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 ),
                 onPressed: _confirmBooking,
                 child: const Text("CONFIRM APPOINTMENT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -226,7 +263,10 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   Widget _buildDropdownContainer({required Widget child}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15),
-      decoration: BoxDecoration(color: const Color(0xFF90E094).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(15)),
+      decoration: BoxDecoration(
+        color: const Color(0xFF90E094).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(15),
+      ),
       child: child,
     );
   }

@@ -152,6 +152,15 @@ def get_doctors():
 def book_appointment():
     try:
         data = request.json
+        existing_appointment = appointment_collection.find_one({
+            "doctor_id": data.get('doctor_id'),
+            "date": data.get('date'),
+            "time": data.get('time'),
+            "status": "Scheduled"
+        })
+        if existing_appointment:
+            return jsonify({"error": "This slot is already booked. Please choose another time."}), 409
+        
         appointment_data = {
             "user_id": ObjectId(data.get('user_id')),
             "doctors_id": data.get('doctors_id'),
