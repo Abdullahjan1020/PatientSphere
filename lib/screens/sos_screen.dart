@@ -21,24 +21,25 @@ class _SOSTriggerScreenState extends State<SOSTriggerScreen> {
   @override
   void initState() {
     super.initState();
-    _checkSosStatus(); // Check if already enabled forever
+    _checkSosStatus();
   }
 
-  // Check SharedPreferences to see if user already enabled SOS
   Future<void> _checkSosStatus() async {
     final prefs = await SharedPreferences.getInstance();
     bool isAlreadyEnabled = prefs.getBool('sos_permanently_enabled') ?? false;
 
     if (isAlreadyEnabled) {
-      setState(() => _sosEnabled = true);
+      if (mounted) {
+        setState(() => _sosEnabled = true);
+      }
       _startCountdown();
     } else {
-      // First time user - show disclaimer
-      WidgetsBinding.instance.addPostFrameCallback((_) => _showEmergencyDisclaimer());
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _showEmergencyDisclaimer());
+      }
     }
   }
 
-  // Save the "Enabled" status permanently
   Future<void> _saveSosStatus() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('sos_permanently_enabled', true);
@@ -51,11 +52,10 @@ class _SOSTriggerScreenState extends State<SOSTriggerScreen> {
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
-          crossAxisAlignment: CrossAxisAlignment.start, // Align icon with top of text
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(Icons.warning_amber_rounded, color: Colors.red),
             SizedBox(width: 10),
-            // FIX: Using Expanded to prevent the yellow overflow barrier
             Expanded(
               child: Text(
                 "Emergency Disclaimer",
@@ -83,12 +83,16 @@ class _SOSTriggerScreenState extends State<SOSTriggerScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () async {
-              await _saveSosStatus(); // Save status forever
-              if (mounted) {
-                Navigator.pop(context); // Close dialog
-                setState(() => _sosEnabled = true);
-                _startCountdown();
-              }
+              // Capture the navigator before the async gap
+              final navigator = Navigator.of(context);
+
+              await _saveSosStatus();
+
+              if (!mounted) return;
+
+              navigator.pop(); // Close dialog using captured navigator
+              setState(() => _sosEnabled = true);
+              _startCountdown();
             },
             child: const Text("ENABLE & PROCEED", style: TextStyle(color: Colors.white)),
           ),
@@ -100,16 +104,22 @@ class _SOSTriggerScreenState extends State<SOSTriggerScreen> {
   void _startCountdown() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_secondsRemaining > 0) {
-        setState(() => _secondsRemaining--);
+        if (mounted) {
+          setState(() => _secondsRemaining--);
+        }
       } else {
         _timer?.cancel();
-        if (!_isTriggered) _executeEmergencyCall();
+        if (!_isTriggered) {
+          _executeEmergencyCall();
+        }
       }
     });
   }
 
   Future<void> _executeEmergencyCall() async {
-    setState(() => _isTriggered = true);
+    if (mounted) {
+      setState(() => _isTriggered = true);
+    }
     try {
       final Uri callUri = Uri.parse('tel:1122');
       if (await canLaunchUrl(callUri)) {
@@ -148,12 +158,12 @@ class _SOSTriggerScreenState extends State<SOSTriggerScreen> {
               style: TextStyle(fontSize: 18, color: Colors.red.shade900),
             ),
             const SizedBox(height: 30),
-
             Stack(
               alignment: Alignment.center,
               children: [
                 SizedBox(
-                  height: 150, width: 150,
+                  height: 150,
+                  width: 150,
                   child: CircularProgressIndicator(
                     value: _sosEnabled ? (_secondsRemaining / 3) : 0,
                     strokeWidth: 10,
@@ -167,9 +177,7 @@ class _SOSTriggerScreenState extends State<SOSTriggerScreen> {
                 ),
               ],
             ),
-
             const SizedBox(height: 50),
-
             if (!_isTriggered)
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
